@@ -158,7 +158,7 @@ class GoPro:
 				exception_found = False
 				if "HD" in response:
 					response_parsed=response.split("HD")[1][0]
-				exceptions=["HX","FS","HD3.02","H18"]
+				exceptions=["HX","FS","HD3.02","H18","HD3.22.01.50"]
 				for camera in exceptions:
 					if camera in response:
 						exception_found = True
