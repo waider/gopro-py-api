@@ -11,4 +11,5 @@ setup(name='goprocam',
       author_email='mail@chernowii.com',
       license='MIT',
       packages=['goprocam'],
+      test_suite="tests",
       zip_safe=False)
