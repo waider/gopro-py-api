@@ -38,7 +38,8 @@ class ImportTest(TestCase):
         camera = GoProCamera.GoPro()
         assert camera, "got a camera object"
         assert camera.ip_addr == '10.5.5.9'
-        assert camera._mac_address == fakemac(ip=None)
+        if sys.modules.get('getmac'):
+            assert camera._mac_address == fakemac(ip=None)
         assert camera._camera == 'gpcontrol'
 
 
