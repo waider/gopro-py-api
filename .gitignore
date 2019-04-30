@@ -4,3 +4,8 @@ dist/
 *.egg-info
 build/
 .idea/
+.Python
+bin
+include
+lib
+pip-selfcheck.json
