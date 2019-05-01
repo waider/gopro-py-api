@@ -75,5 +75,6 @@ class WhichCamTest(GoProCameraTest):
         self.responses['/camera/cv'] = 'Hero3'
         self.monkeypatch.setattr(time, 'sleep', lambda x: False)
         # different power-on!
-        self.monkeypatch.setattr(GoProCamera.GoPro, 'power_on_auth', lambda self: self)
-        assert self.goprocam.whichCam() == 'auth'
+        with self.monkeypatch.context() as m:
+            setattr(GoProCamera.GoPro, 'power_on_auth', lambda self: self)
+            assert self.goprocam.whichCam() == 'auth'
