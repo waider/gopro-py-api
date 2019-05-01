@@ -1,48 +1,39 @@
-from unittest import TestCase
+from .conftest import GoProCameraTest
 from goprocam import GoProCamera
-import urllib.request
-import io
-import sys
+import time
 
-import pytest
-from _pytest.monkeypatch import MonkeyPatch
+class ModuleTest(GoProCameraTest):
+    def test_init(self):
+        assert self.goprocam, "got a self.goprocam object"
+        assert self.goprocam.ip_addr == '10.5.5.9'
+        assert self.goprocam._mac_address == 'DE:AD:BE:EF' # xxx
+        assert self.goprocam._camera == 'gpcontrol'
 
-# this is optional
-try:
-    import getmac
-except ImportError:
-    pass
+    def test_init_auth(self):
+        # this will invoke time.sleep and power_on_auth
+        self.monkeypatch.setattr(time, 'sleep', lambda x: None)
+        with self.monkeypatch.context() as m:
+            m.setattr(GoProCamera.GoPro, 'power_on_auth', lambda self: None)
+            self.goprocam = GoProCamera.GoPro(camera='auth')
+        assert self.goprocam._camera == 'auth'
 
+    def test_init_pair(self):
+        def fakepair(self):
+            self.paired = True
+        with self.monkeypatch.context() as m:
+            m.setattr(GoProCamera.GoPro, 'pair', fakepair)
+            self.goprocam = GoProCamera.GoPro(camera='startpair')
+        assert self.goprocam.paired
+        
+    def test_init_detect(self):
+        self.monkeypatch.setattr(time, 'sleep', lambda x: None)
+        with self.monkeypatch.context() as m:
+            m.setattr(GoProCamera.GoPro, 'prepare_gpcontrol', lambda self: None)
+            self.goprocam = GoProCamera.GoPro(camera='detect')
+        assert self.goprocam._camera == 'gpcontrol'
 
-class GoProCameraTest(TestCase):
-    def setUp(self):
-        self.monkeypatch = MonkeyPatch()
-
-    def test_instantiate(self):
-        ''' GoPro object can be instantiated '''
-
-        # this gets called by prepare_gpcontrol
-        def fake_request(url, timeout=None):
-            assert url == 'http://10.5.5.9/gp/gpControl'
-            # return something that will show as a gpcontrol camera
-            return io.BytesIO("""
-{"info": {"firmware_version": "HD3.02", "model_name": "dummy"}}
-""".encode('utf8'))
-        self.monkeypatch.setattr(urllib.request, 'urlopen', fake_request)
-
-        # if this optional module is available, stub it out
-        def fakemac(ip=''):
-            return 'DE:AD:BE:EF'
-        if sys.modules.get('getmac'):
-            self.monkeypatch.setattr(getmac, 'get_mac_address', fakemac)
-
-        # stop it from sending the WoL packet
-        self.monkeypatch.setattr(GoProCamera.GoPro, 'power_on', lambda s, mac_address: s)
-
-        camera = GoProCamera.GoPro(camera='gpcontrol', mac_address=fakemac(ip=None))
-
-        assert camera, "got a camera object"
-        assert camera.ip_addr == '10.5.5.9'
-        assert camera._mac_address == fakemac(ip=None)
-        assert camera._camera == 'gpcontrol'
-
+    def test_str(self):
+        # this is a little contrived but avoids testing infoCamera by side-effect
+        with self.monkeypatch.context() as m:
+            m.setattr(GoProCamera.GoPro, 'infoCamera', lambda self: 'stringy')
+            assert str(self.goprocam) == 'stringy'
