@@ -2,6 +2,7 @@ from .conftest import GoProCameraTest
 
 from socket import timeout
 
+
 class GpControlSetTest(GoProCameraTest):
     def test_gp_control_set(self):
         # on success, this is an empty json blob
