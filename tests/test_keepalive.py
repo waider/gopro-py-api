@@ -6,7 +6,7 @@ import pytest
 from .conftest import GoProCameraTest
 
 
-class ModuleTest(GoProCameraTest):
+class KeepaliveTest(GoProCameraTest):
     def test_keepalive(self):
         # this is an infinite loop, so need to be tricksy
         # patch socket functions
