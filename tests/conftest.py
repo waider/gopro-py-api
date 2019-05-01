@@ -25,6 +25,13 @@ class GoProCameraTest(TestCase):
                 'info': {
                     'firmware_version': 'HD3.02',
                     'model_name': 'dummy',
+                    'model_number': 1,
+                    'serial_number': 'X',
+                    'board_type': '0x02',
+                    'ap_mac': 'ABCDEFABCDEF',
+                    'ap_ssid': 'ssid',
+                    'ap_has_default_credentials': '1',
+                    'git_sha1': '66fac36c7d9b3e3479c460fc827e8436c5634a60',
                     },
                 },
             }
