@@ -1,67 +1,15 @@
-from unittest import TestCase
+from .conftest import GoProCameraTest
 from goprocam import GoProCamera
-import urllib.request
-import io
-import sys
-import json
 import time
 import http
-
-import pytest
-from _pytest.monkeypatch import MonkeyPatch
-from urllib.error import HTTPError, URLError
 from socket import timeout
 
-try:
-    import getmac
-except ImportError:
-    pass
 
-class WhichCamTest(TestCase):
+class WhichCamTest(GoProCameraTest):
     def setUp(self):
-        self.monkeypatch = MonkeyPatch()
-
-        self.responses = {
-            '/gp/gpControl': {
-                'info': {
-                    'firmware_version': 'HD3.02',
-                    'model_name': 'dummy',
-                    },
-                },
-            }
-
-        def fake_request(url, timeout=None):
-            path = url.replace('http://10.5.5.9', '')
-            try:
-                if isinstance(self.responses[path], Exception):
-                    raise self.responses[path]
-                if type(self.responses[path]) == str:
-                    res = io.BytesIO(self.responses[path].encode('utf8'))
-                else:
-                    res = io.BytesIO(json.dumps(self.responses[path]).encode('utf8'))
-                # v. ropey
-                class Info(object):
-                    def get_content_charset(self, charset):
-                        return 'utf8'
-                res.info = Info
-                return res
-            except KeyError as e:
-                raise HTTPError(url, 404, 'Not Found', None, None)
-        self.monkeypatch.setattr(urllib.request, 'urlopen', fake_request)
-
-        # if this optional module is available, stub it out
-        def fakemac(ip=''):
-            return 'DE:AD:BE:EF'
-        if sys.modules.get('getmac'):
-            self.monkeypatch.setattr(getmac, 'get_mac_address', fakemac)
-
-        # stop it from sending the WoL packet
-        self.monkeypatch.setattr(GoProCamera.GoPro, 'power_on', lambda s, mac_address: s)
-
-        # and disable this as we'll test it separately
+        super().setUp()
+        # disable this so we can test it separately
         self.monkeypatch.setattr(GoProCamera.GoPro, 'prepare_gpcontrol', lambda self: self)
-
-        self.goprocam = GoProCamera.GoPro(camera='gpcontrol', mac_address=fakemac(ip=None))
 
     def test_already_deetected(self):
         assert self.goprocam.whichCam() == 'gpcontrol'
