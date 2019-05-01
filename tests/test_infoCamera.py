@@ -1,5 +1,5 @@
 from .conftest import GoProCameraTest
-from goprocam.constants import Info
+from goprocam.constants import Camera
 import pytest
 from socket import timeout
 
@@ -9,6 +9,13 @@ class InfoCameraTest(GoProCameraTest):
         self.monkeypatch.setattr(self.goprocam, 'whichCam', lambda: 'gpcontrol')
         info = self.goprocam.infoCamera()
         assert info == self.responses['/gp/gpControl']['info']
+
+    def test_detailed_info_camera(self):
+        self.monkeypatch.setattr(self.goprocam, 'whichCam', lambda: 'gpcontrol')
+        # definitely hokey
+        for detail in [c for c in Camera.__dict__ if type(c) == str and c[0] >= 'A' and c[0] <= 'Z']:
+            info = self.goprocam.infoCamera(getattr(Camera, detail))
+        assert info == self.responses['/gp/gpControl']['info'][getattr(Camera, detail)]
 
     def test_default_info_camera_error(self):
         self.monkeypatch.setattr(self.goprocam, 'whichCam', lambda: 'gpcontrol')
