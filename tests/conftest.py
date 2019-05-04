@@ -63,7 +63,8 @@ class GoProCameraTest(TestCase):
                 res.info = Info
                 return res
             except KeyError:
-                raise HTTPError(url, 404, "Not Found", None, None)
+                raise HTTPError(url, 404, "Not Found ({})".format(url), None,
+                                None)
 
         self.monkeypatch.setattr(urllib.request, "urlopen", fake_request)
 
