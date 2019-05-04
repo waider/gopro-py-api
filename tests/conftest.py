@@ -48,8 +48,10 @@ class GoProCameraTest(TestCase):
             try:
                 if isinstance(self.responses[path], Exception):
                     raise self.responses[path]
-                if type(self.responses[path]) == str:
+                if isinstance(self.responses[path], str):
                     res = io.BytesIO(self.responses[path].encode("utf8"))
+                elif isinstance(self.responses[path], bytes):
+                    res = io.BytesIO(self.responses[path])
                 else:
                     res = io.BytesIO(json.dumps(
                             self.responses[path]).encode("utf8"))
