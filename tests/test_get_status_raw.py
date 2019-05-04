@@ -36,3 +36,23 @@ class GetStatusRawTest(GoProCameraTest):
             self.responses['/camera/sx?t=password'] = b'\xAB'
 
             assert self.goprocam.getStatusRaw() == b'\xab'
+
+    def test_get_status_raw_auth_error(self):
+        with self.monkeypatch.context() as m:
+            m.setattr(GoProCamera.GoPro, 'getPassword',
+                      lambda self: 'password')
+            self.goprocam._camera = 'auth'
+            assert self.goprocam.getStatusRaw() == ''
+
+    def test_get_status_raw_auth_timeout(self):
+        with self.monkeypatch.context() as m:
+            m.setattr(GoProCamera.GoPro, 'getPassword',
+                      lambda self: 'password')
+            self.goprocam._camera = 'auth'
+            self.responses['/camera/sx?t=password'] = timeout()
+            assert self.goprocam.getStatusRaw() == ''
+
+    def test_get_status_raw_undefined(self):
+        with self.monkeypatch.context() as m:
+            m.setattr(self.goprocam, 'whichCam', lambda: None)
+            assert self.goprocam.getStatusRaw() is None
