@@ -17,18 +17,18 @@ class GetStatusTest(GoProCameraTest):
                 }
             }
         # could check all of 'em, but ok for now
-        self.goprocam.getStatus(param, value)
+        assert self.goprocam.getStatus(param, value) == 1
 
     def test_get_status_gpcontrol_error(self):
         param = Status.Settings
         value = Status.STATUS.Battery
-        self.goprocam.getStatus(param, value)
+        assert self.goprocam.getStatus(param, value) == ''
 
     def test_get_status_gpcontrol_timeout(self):
         param = Status.Settings
         value = Status.STATUS.Battery
         self.responses['/gp/gpControl/status'] = timeout()
-        self.goprocam.getStatus(param, value)
+        assert self.goprocam.getStatus(param, value) == ''
 
     def test_get_Status_auth(self):
         with self.monkeypatch.context() as m:
@@ -39,4 +39,4 @@ class GetStatusTest(GoProCameraTest):
 
             self.responses['/camera/sx?t=password'] = 'AB'
 
-            status = self.goprocam.getStatus(param)
+            assert self.goprocam.getStatus(param) == 'A'
