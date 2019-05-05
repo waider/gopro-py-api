@@ -82,7 +82,12 @@ class GoProCameraTest(TestCase):
             GoProCamera.GoPro, "power_on", lambda s, mac_address: s
         )
 
-        # and disable this as we'll test it separately
         self.goprocam = GoProCamera.GoPro(
             camera="gpcontrol", mac_address=fakemac(ip=None)
         )
+
+
+class GoProCameraAuthTest(GoProCameraTest):
+    def setUp(self):
+        super().setUp()
+        self.goprocam._camera = 'auth'
