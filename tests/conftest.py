@@ -91,3 +91,6 @@ class GoProCameraAuthTest(GoProCameraTest):
     def setUp(self):
         super().setUp()
         self.goprocam._camera = 'auth'
+        self.responses = {
+            '/bacpac/sd': 'password'
+            }

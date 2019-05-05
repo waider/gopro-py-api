@@ -1,4 +1,4 @@
-from .conftest import GoProCameraTest
+from .conftest import GoProCameraTest, GoProCameraAuthTest
 from goprocam import GoProCamera
 
 
@@ -21,9 +21,10 @@ class ModeTest(GoProCameraTest):
             m.setattr(GoProCamera.GoPro, 'gpControlCommand', verify_cmd)
             self.goprocam.mode('foo', 'bar')
 
+
+class ModeAuthTest(GoProCameraAuthTest):
     def test_mode_auth(self):
         with self.monkeypatch.context() as m:
-            m.setattr(GoProCamera.GoPro, 'whichCam', lambda self: 'auth')
 
             def verify_cmd(self, param, value):
                 assert param == 'CM'
@@ -33,7 +34,6 @@ class ModeTest(GoProCameraTest):
 
     def test_mode_auth_longer_cmd(self):
         with self.monkeypatch.context() as m:
-            m.setattr(GoProCamera.GoPro, 'whichCam', lambda self: 'auth')
 
             def verify_cmd(self, param, value):
                 assert param == 'CM'
