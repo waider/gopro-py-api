@@ -1,0 +1,7 @@
+Unit tests for the GoProCamera module.
+
+Originally written to not require further modules; at some point I wanted 
+a feature from pytest, so added that and didn't go back and leverage pytest's
+other features such as automatic fixtures and parametrized tests. So this is
+still effectively stdlib unittest plus a little bit of pytest, which may
+account for any weirdness you see.
