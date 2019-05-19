@@ -7,7 +7,7 @@ class ModuleTest(GoProCameraTest):
     def test_init(self):
         assert self.goprocam, "got a self.goprocam object"
         assert self.goprocam.ip_addr == '10.5.5.9'
-        assert self.goprocam._mac_address == 'DE:AD:BE:EF'  # xxx
+        assert self.goprocam._mac_address == '00:00:DE:AD:BE:EF'
         assert self.goprocam._camera == 'gpcontrol'
 
     def test_init_auth(self):
