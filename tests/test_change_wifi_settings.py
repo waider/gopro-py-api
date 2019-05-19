@@ -1,20 +1,18 @@
 from .conftest import GoProCameraTest
 from goprocam import GoProCamera
-import pytest
 
 
 class ChangeWifiSettings(GoProCameraTest):
     def test_change_wifi_settings(self):
         with self.monkeypatch.context() as m:
-
-            # this function calls exit() which means we need to be tricky.
-            class SuccessException(Exception):
-                pass
-
             def verify_cmd(self, text):
                 assert text == 'wireless/ap/ssid?ssid=ssid&pw=password'
-                raise SuccessException()
+
+            # need to trap print() and exit()
+            def mock_builtin(*args, **kwargs):
+                pass
 
             m.setattr(GoProCamera.GoPro, 'gpControlCommand', verify_cmd)
-            with pytest.raises(SuccessException):
-                self.goprocam.changeWiFiSettings('ssid', 'password')
+            m.setattr('builtins.print', mock_builtin)
+            m.setattr('builtins.exit', mock_builtin)
+            self.goprocam.changeWiFiSettings('ssid', 'password')
