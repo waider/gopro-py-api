@@ -4,6 +4,7 @@ import logging
 import sys
 import time
 import urllib.request
+import socket
 from unittest import TestCase
 from urllib.error import HTTPError
 
@@ -72,15 +73,36 @@ class GoProCameraTest(TestCase):
 
         # if this optional module is available, stub it out
         def fakemac(ip=""):
-            return "DE:AD:BE:EF"
+            return "00:00:DE:AD:BE:EF"
 
         if sys.modules.get("getmac"):
             self.monkeypatch.setattr(getmac, "get_mac_address", fakemac)
 
         # stop it from sending the WoL packet during __init__
-        self.monkeypatch.setattr(
-            GoProCamera.GoPro, "power_on", lambda s, mac_address: s
-        )
+        def fake_socket(family, socktype):
+            assert family == socket.AF_INET
+            assert socktype == socket.SOCK_DGRAM
+
+            class FakeSocket():
+                def sendto(self, *args, **kwargs):
+                    assert args[0] in [
+                        "_GPHD_:0:0:2:0.000000\n".encode(),  # keepalive
+                        b"\xff\xff\xff\xff\xff\xff" +
+                        (b"\x00\x00\xde\xad\xbe\xef") * 16,  # wakeup
+                        b"\xff\xff\xff\xff\xff\xff" +
+                        (b"\xaa\xbb\xcc\xdd\xee\xff") * 16,  # wakeup
+                        ], "unexpected message '{}'".format(args[0])
+                    ipaddr, port = args[1]
+                    assert ipaddr == '10.5.5.9'  # sigh
+                    assert port in [
+                        8554,  # keepalive
+                        9,     # wakeup
+                        7      # wakeup
+                        ]
+
+            return FakeSocket()
+
+        self.monkeypatch.setattr(socket, 'socket', fake_socket)
 
         self.goprocam = GoProCamera.GoPro(
             camera="gpcontrol", mac_address=fakemac(ip=None)
