@@ -1,4 +1,4 @@
-from .conftest import GoProCameraTest
+from .conftest import GoProCameraTest, GoProCameraAuthTest
 from goprocam import GoProCamera
 
 from goprocam.constants import Status
@@ -30,11 +30,12 @@ class GetStatusTest(GoProCameraTest):
         self.responses['/gp/gpControl/status'] = timeout()
         assert self.goprocam.getStatus(param, value) == ''
 
-    def test_get_Status_auth(self):
+
+class GetStatusAuthTest(GoProCameraAuthTest):
+    def test_get_status(self):
         with self.monkeypatch.context() as m:
             m.setattr(GoProCamera.GoPro, 'getPassword',
                       lambda self: 'password')
-            self.goprocam._camera = 'auth'
             param = (0, 1)  # this is a bit weird
 
             self.responses['/camera/sx?t=password'] = b'\xAB'

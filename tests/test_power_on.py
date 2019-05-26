@@ -14,6 +14,12 @@ class PowerOnTest(GoProCameraTest):
     def test_power_on_short_mac(self):
         self.goprocam.power_on(self.goprocam._mac_address.replace(':', ''))
 
+    # this is solely to cover an untested branch
+    def test_power_on_invalid_mac(self):
+        with pytest.raises(AssertionError) as excinfo:
+            self.goprocam.power_on('eeaa')
+        assert '\\xee\\xaa' in str(excinfo.value)
+
 
 class PowerOnAuthTest(GoProCameraAuthTest):
     def test_power_on_auth(self):

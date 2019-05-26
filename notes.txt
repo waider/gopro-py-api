@@ -1,0 +1,7 @@
+* lots of code duplication - could consolidate
+* some errors in handling of GoPro Fusion
+* urlretrieve breaks at 2GB?
+- this is a limitation of the camera's httpd!
+- should support progress
+- should support restart
+* example dump SDCard script assumes everything was downloaded successfully

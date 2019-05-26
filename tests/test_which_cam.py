@@ -32,12 +32,20 @@ class WhichCamTest(GoProCameraTest):
                 firmware_version
             assert self.goprocam.whichCam() == 'auth'
 
-    def test_auth_detecation_without_gpcontrol(self):
+    def test_auth_detection_not_hero3(self):
+        self.goprocam._camera = ''
+        self.responses['/camera/cv'] = 'Hero2'
+        for firmware_version in ['HD2', '4', 'HD3.1']:
+            self.responses['/gp/gpControl']['info']['firmware_version'] = \
+                firmware_version
+            assert self.goprocam.whichCam() == ''
+
+    def test_auth_detection_without_gpcontrol(self):
         self.goprocam._camera = ''
         self.responses = {'/camera/cv': 'Hero3'}
         assert self.goprocam.whichCam() == 'auth'
 
-    def test_gpcontrol_detecation_without_gpcontrol(self):
+    def test_gpcontrol_detection_without_gpcontrol_not_hero3(self):
         self.goprocam._camera = ''
         del(self.responses['/gp/gpControl'])
         self.responses['/camera/cv'] = 'Hero2'
@@ -75,5 +83,22 @@ class WhichCamTest(GoProCameraTest):
         self.responses['/camera/cv'] = 'Hero3'
         # different power-on!
         with self.monkeypatch.context() as m:
+            def print_verify(args):
+                assert isinstance(args, http.client.HTTPException) or \
+                    args == 'HERO3/3+'
+            m.setattr('builtins.print', print_verify)
+            m.setattr(GoProCamera.GoPro, 'power_on_auth', lambda self: self)
+            assert self.goprocam.whichCam() == 'auth'
+
+    def test_gpcontrol_exception_while_detecting_not_hero3(self):
+        self.goprocam._camera = ''
+        self.responses['/gp/gpControl'] = http.client.HTTPException()
+        # this copes poorly with errors, so help it along
+        self.responses['/camera/cv'] = 'Hero2'
+        # different power-on!
+        with self.monkeypatch.context() as m:
+            def print_verify(args):
+                assert isinstance(args, http.client.HTTPException)
+            m.setattr('builtins.print', print_verify)
             m.setattr(GoProCamera.GoPro, 'power_on_auth', lambda self: self)
             assert self.goprocam.whichCam() == 'auth'

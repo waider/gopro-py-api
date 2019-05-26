@@ -1,6 +1,17 @@
-from .conftest import GoProCameraTest, GoProCameraAuthTest
+from .conftest import GoProCameraTest, GoProCameraAuthTest,\
+    GoProCameraUnknownTest, verify_uncalled
 from goprocam import GoProCamera
 from goprocam.constants import Video, Hero3Commands
+
+
+class VideoSettingsUnknownCamTest(GoProCameraUnknownTest):
+    def setUp(self):
+        super().setUp()
+
+    def test_video_settings(self):
+        with self.monkeypatch.context() as m:
+            m.setattr('builtins.print', verify_uncalled)
+            self.goprocam.video_settings(None)
 
 
 class VideoSettingsTest(GoProCameraTest):
@@ -67,3 +78,9 @@ class VideoSettingsAuthTest(GoProCameraAuthTest):
                     self.goprocam.expected_fps =\
                         eval('Hero3Commands.FrameRate.' + fps)
                     self.goprocam.video_settings(res, fps.replace('FPS', ''))
+
+    def test_video_settings_unknown_resolution(self):
+        with self.monkeypatch.context() as m:
+            m.setattr('builtins.print', verify_uncalled)
+            m.setattr(GoProCamera.GoPro, 'sendCamera', verify_uncalled)
+            self.goprocam.video_settings('unknown')

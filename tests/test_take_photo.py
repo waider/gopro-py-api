@@ -1,5 +1,33 @@
-from .conftest import GoProCameraTest, GoProCameraAuthTest
+from .conftest import GoProCameraTest, GoProCameraAuthTest,\
+    GoProCameraUnknownTest
 from goprocam import GoProCamera, constants
+
+
+class TakePhotoUnknownTest(GoProCameraUnknownTest):
+    def test_take_photo(self):
+        with self.monkeypatch.context() as m:
+            def verify_shutter(self, cmd):
+                assert cmd == constants.start
+
+            def fake_busy(self, p1, p2):
+                """ look busy first time we're called, then not """
+                if self.is_busy == 1:
+                    self.is_busy = 0
+                    return 1
+                return 0
+
+            def verify_mode(self, mode, submode=None):
+                assert mode == constants.Mode.PhotoMode
+
+            m.setattr(GoProCamera.GoPro, 'infoCamera', lambda s, p: 'HERO1')
+            m.setattr(GoProCamera.GoPro, 'mode', verify_mode)
+            m.setattr(GoProCamera.GoPro, 'shutter', verify_shutter)
+            m.setattr(GoProCamera.GoPro, 'getStatus', fake_busy)
+            m.setattr(GoProCamera.GoPro, 'getMedia', lambda s: 'PIC')
+
+            self.goprocam.is_busy = 1
+
+            assert self.goprocam.take_photo() is None
 
 
 class TakePhotoTest(GoProCameraTest):

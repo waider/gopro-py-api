@@ -27,7 +27,7 @@ class GoProCameraTest(TestCase):
             lambda x: logging.debug("sleeping for {}s".format(x))
             )
 
-        # Default response to pretend I'm a GoPro HERO+
+        # Default response to pretend I'm a GoPro HERO+ with no media
         self.responses = {
             "/gp/gpControl": {
                 "info": {
@@ -41,25 +41,36 @@ class GoProCameraTest(TestCase):
                     "ap_has_default_credentials": "1",
                     "git_sha1": "66fac36c7d9b3e3479c460fc827e8436c5634a60",
                 }
+            },
+            ':8080/gp/gpMediaList': {
+                'media': []
             }
         }
 
-        def fake_request(url, timeout=None):
+        def fake_request(url, timeout=None, context=None):
             path = url.replace("http://10.5.5.9", "")
             try:
-                if isinstance(self.responses[path], Exception):
-                    raise self.responses[path]
-                if isinstance(self.responses[path], str):
-                    res = io.BytesIO(self.responses[path].encode("utf8"))
-                elif isinstance(self.responses[path], bytes):
-                    res = io.BytesIO(self.responses[path])
+                if isinstance(self.responses[path], list):
+                    response = self.responses[path][0]
+                    self.responses[path] = self.responses[path][1:]
+                else:
+                    response = self.responses[path]
+                if isinstance(response, Exception):
+                    raise response
+                if isinstance(response, str):
+                    res = io.BytesIO(response.encode("utf8"))
+                elif isinstance(response, bytes):
+                    res = io.BytesIO(response)
                 else:
                     res = io.BytesIO(json.dumps(
-                            self.responses[path]).encode("utf8"))
+                            response).encode("utf8"))
                 # v. ropey. We want to pretend our result is a HTTP response,
                 # a little.
 
                 class Info(object):
+                    def __iter__(self):
+                        return iter([])
+
                     def get_content_charset(self, charset):
                         return "utf8"
 
@@ -116,3 +127,57 @@ class GoProCameraAuthTest(GoProCameraTest):
         self.responses = {
             '/bacpac/sd': 'password'
             }
+
+
+class GoProCameraUnknownTest(GoProCameraTest):
+    def setUp(self):
+        super().setUp()
+        self.goprocam._camera = 'unknown'
+
+
+def mock_mediainfo_txt(self, option):
+    if option == 'file':
+        return 'file.TXT'
+    elif option == 'size':
+        return '1.0B'
+    elif option == 'folder':
+        return 'folder'
+    else:
+        raise ValueError(option)
+
+
+def mock_mediainfo_jpg(self, option):
+    if option == 'file':
+        return 'file.JPG'
+    elif option == 'size':
+        return '1.0B'
+    elif option == 'folder':
+        return 'folder'
+    else:
+        raise ValueError(option)
+
+
+def mock_mediainfo_txt_fs(self, option):
+    if option == 'file':
+        return ['front.TXT', 'back.TXT']
+    elif option == 'size':
+        return ['1.0B', '2.0B']
+    elif option == 'folder':
+        return ['GFRNT', 'GBACK']
+    else:
+        raise ValueError(option)
+
+
+def mock_mediainfo_jpg_fs(self, option):
+    if option == 'file':
+        return ['front.JPG', 'back.JPG']
+    elif option == 'size':
+        return ['1.0B', '2.0B']
+    elif option == 'folder':
+        return ['GFRNT', 'GBACK']
+    else:
+        raise ValueError(option)
+
+
+def verify_uncalled(*args, **kwargs):
+    assert False, 'unexpected call to function'
