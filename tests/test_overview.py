@@ -1,5 +1,13 @@
-from .conftest import GoProCameraTest, GoProCameraAuthTest
+from .conftest import GoProCameraTest, GoProCameraAuthTest,\
+    GoProCameraUnknownTest, verify_uncalled
 from goprocam import GoProCamera
+
+
+class OverviewUnknownTest(GoProCameraUnknownTest):
+    def test_overview(self):
+        with self.monkeypatch.context() as m:
+            m.setattr('builtins.print', verify_uncalled)
+            self.goprocam.overview()
 
 
 class OverviewTest(GoProCameraTest):
