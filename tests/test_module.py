@@ -76,5 +76,10 @@ class ModuleTest(GoProCameraTest):
 class ModuleAuthTest(GoProCameraAuthTest):
     def test_init_auth(self):
         with self.monkeypatch.context() as m:
-            m.setattr(GoProCamera.GoPro, 'power_on_auth', lambda self: None)
-            assert self.goprocam._camera == 'auth'
+            def mock_power(self):
+                self._power = True
+            m.setattr(GoProCamera.GoPro, 'power_on_auth', mock_power)
+            for cam in ['auth', 'HERO2', 'HERO3', 'HERO3+']:
+                goprocam = GoProCamera.GoPro(cam)
+                assert goprocam._camera == 'auth'
+                assert goprocam._power is True
