@@ -11,8 +11,8 @@ class InfoCameraTest(GoProCameraTest):
 
     def test_detailed_info_camera(self):
         # definitely hokey
-        for detail in [c for c in Camera.__dict__
-                       if type(c) == str and c[0] >= 'A' and c[0] <= 'Z']:
+        for detail in [k for k, v in Camera.__dict__.items()
+                       if type(v) == str and k[0] >= 'A' and k[0] <= 'Z']:
             assert self.goprocam.infoCamera(getattr(Camera, detail)) ==\
                 self.responses['/gp/gpControl']['info'][getattr(Camera,
                                                                 detail)]
