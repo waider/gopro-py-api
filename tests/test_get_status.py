@@ -1,4 +1,5 @@
-from .conftest import GoProCameraTest, GoProCameraAuthTest
+from .conftest import GoProCameraTest, GoProCameraAuthTest,\
+    GoProCameraUnknownTest
 from goprocam import GoProCamera
 
 from goprocam.constants import Status
@@ -41,3 +42,8 @@ class GetStatusAuthTest(GoProCameraAuthTest):
             self.responses['/camera/sx?t=password'] = b'\xAB'
 
             assert self.goprocam.getStatus(param) == 'A'
+
+
+class GetStatusUnknownTest(GoProCameraUnknownTest):
+    def test_get_status(self):
+        assert self.goprocam.getStatus('dummy') is None
