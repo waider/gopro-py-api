@@ -8,8 +8,8 @@ import datetime
 import struct
 import subprocess
 from socket import timeout
-from urllib.error import HTTPError
-from urllib.error import URLError
+from urllib.error import (HTTPError, URLError, ContentTooShortError)
+from urllib.parse import urlparse
 import http
 import math
 import base64
@@ -664,6 +664,18 @@ class GoPro:
 	##
 	## Downloading media functions
 	##
+	def download_url(self, url, path, raises=True):
+		""" Download the specified URL to the specified path. If raises is True, exceptions are passed back to the caller; otherwise they are printed to stdout and swallowed. If a short read is encountered, i.e. the download is interrupted, it will be retried. """
+		try:
+			urllib.request.urlretrieve(url, path)
+		except ContentTooShortError:
+			raise
+		except Exception as error:
+			if raises:
+				raise
+			else:
+				print("ERROR: " + str(error))
+		
 	def downloadMultiShot(self, path=""):
 		"""Downloads a multi-shot sequence."""
 		if path == "":
@@ -708,13 +720,13 @@ class GoPro:
 				if "FS" in self.infoCamera(constants.Camera.Firmware):
 					print("filename: " + self.getMediaInfo("file")[0] + "\nsize: " + self.getMediaInfo("size")[0])
 					print("filename: " + self.getMediaInfo("file") [1]+ "\nsize: " + self.getMediaInfo("size")[1])
-					urllib.request.urlretrieve(self.getMedia()[0], self.getMediaInfo("folder")[0]+self.getMediaInfo("file")[0])
-					urllib.request.urlretrieve(self.getMedia()[1], self.getMediaInfo("folder")[1]+self.getMediaInfo("file")[1])
+					self.download_url(self.getMedia()[0], self.getMediaInfo("folder")[0]+self.getMediaInfo("file")[0])
+					self.download_url(self.getMedia()[1], self.getMediaInfo("folder")[1]+self.getMediaInfo("file")[1])
 				else:
 					print("filename: " + self.getMediaInfo("file") + "\nsize: " + self.getMediaInfo("size"))
 					if custom_filename == "":
 						custom_filename = self.getMediaInfo("folder")+"-"+self.getMediaInfo("file")
-					urllib.request.urlretrieve(self.getMedia(), custom_filename)
+					self.download_url(self.getMedia(), custom_filename)
 			else:
 				print("filename: " + self.getInfoFromURL(path)[1])
 				filename = ""
@@ -722,7 +734,7 @@ class GoPro:
 					filename = self.getInfoFromURL(path)[0]+"-"+self.getInfoFromURL(path)[1]
 				else:
 					filename = custom_filename
-				urllib.request.urlretrieve(path, filename)
+				self.download_url(path, filename)
 		else:
 			print("Not supported while recording or processing media.")
 	def downloadLastRawPhoto(self, custom_filename=""):
@@ -732,15 +744,15 @@ class GoPro:
 				if self.getMediaInfo("file")[0].endswith("JPG"):
 					print("filename: " + self.getMediaInfo("file")[0].replace("JPG","GPR") + "\nsize: " + self.getMediaInfo("size")[0])
 					print("filename: " + self.getMediaInfo("file") [1].replace("JPG","GPR")+ "\nsize: " + self.getMediaInfo("size")[1])
-					urllib.request.urlretrieve(self.getMedia()[0], self.getMediaInfo("folder")[1]+self.getMediaInfo("file")[0])
-					urllib.request.urlretrieve(self.getMedia()[1], self.getMediaInfo("folder")[1]+self.getMediaInfo("file")[1])
+					self.download_url(self.getMedia()[0], self.getMediaInfo("folder")[1]+self.getMediaInfo("file")[0])
+					self.download_url(self.getMedia()[1], self.getMediaInfo("folder")[1]+self.getMediaInfo("file")[1])
 			else:
 				if self.getMediaInfo("file").endswith("JPG"):
 					print("filename: " + self.getMediaInfo("file").replace("JPG","GPR") + "\nsize: " + self.getMediaInfo("size"))
 					if custom_filename == "":
 						custom_filename = self.getMediaInfo("folder")+"-"+self.getMediaInfo("file").replace("JPG","GPR")
 					GPRURL=self.getMedia().replace("JPG","GPR")
-					urllib.request.urlretrieve(GPRURL, custom_filename)
+					self.download_url(GPRURL, custom_filename)
 		else:
 			print("Not supported while recording or processing media.")
 	def downloadMedia(self, folder, file, custom_filename=""):
@@ -755,8 +767,8 @@ class GoPro:
 			try:
 				if "FS" in self.infoCamera(constants.Camera.Firmware):
 					if "GFRNT" in folder:
-						urllib.request.urlretrieve("http://" + self.ip_addr + ":8080/videos2/DCIM/" + folder + "/" + file, filename)
-				urllib.request.urlretrieve("http://" + self.ip_addr + ":8080/videos/DCIM/" + folder + "/" + file, filename)
+						self.download_url("http://" + self.ip_addr + ":8080/videos2/DCIM/" + folder + "/" + file, filename)
+				self.download_url("http://" + self.ip_addr + ":8080/videos/DCIM/" + folder + "/" + file, filename)
 			except (HTTPError, URLError) as error:
 				print("ERROR: " + str(error))
 		else:
@@ -775,8 +787,8 @@ class GoPro:
 			try:
 				if "FS" in self.infoCamera(constants.Camera.Firmware):
 					if "GFRNT" in folder:
-						urllib.request.urlretrieve("http://" + self.ip_addr + ":8080/videos2/DCIM/" + folder + "/" + file, filename)
-				urllib.request.urlretrieve("http://" + self.ip_addr + ":8080/videos/DCIM/" + folder + "/" + file, filename)
+						self.download_url("http://" + self.ip_addr + ":8080/videos2/DCIM/" + folder + "/" + file, filename)
+				self.download_url("http://" + self.ip_addr + ":8080/videos/DCIM/" + folder + "/" + file, filename)
 			except (HTTPError, URLError) as error:
 				print("ERROR: " + str(error))
 		else:
@@ -862,15 +874,8 @@ class GoPro:
 				print("filename: " + lowres_filename) 
 				print(lowres_url)
 				if custom_filename == "":
-					try:
-						urllib.request.urlretrieve(lowres_url, lowres_filename)
-					except (HTTPError, URLError) as error:
-						print("ERROR: " + str(error))
-				else:
-					try:
-						urllib.request.urlretrieve(lowres_url, custom_filename)
-					except (HTTPError, URLError) as error:
-						print("ERROR: " + str(error))
+					custom_filename = lowres_filename
+				self.download_url(lowres_url, custom_filename, raises=False)
 			else:
 				lowres_url=""
 				lowres_filename=""
@@ -884,15 +889,8 @@ class GoPro:
 				print("filename: " + lowres_filename) 
 				print(lowres_url)
 				if custom_filename == "":
-					try:
-						urllib.request.urlretrieve(lowres_url, lowres_filename)
-					except (HTTPError, URLError) as error:
-						print("ERROR: " + str(error))
-				else:
-					try:
-						urllib.request.urlretrieve(lowres_url, custom_filename)
-					except (HTTPError, URLError) as error:
-						print("ERROR: " + str(error))
+					custom_filename = lowres_filename
+				self.download_url(lowres_url, custom_filename, raises=False)
 		else:
 			print("Not supported while recording or processing media.")
 	##
