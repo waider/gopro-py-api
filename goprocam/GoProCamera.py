@@ -13,13 +13,16 @@ from urllib.parse import urlparse
 import http
 import math
 import base64
+import os
 import sys
 import ssl
+import shutil
 
 
 class GoPro:
 	def prepare_gpcontrol(self):
 		# WARNING recurses if it can't reach the camera, until maximum recursion depth is reached.
+		self._camera = 'gpcontrol' # by definition
 		firmware = self.infoCamera(constants.Camera.Firmware)
 		if firmware == '':
 			self.prepare_gpcontrol()
@@ -40,6 +43,8 @@ class GoPro:
 		self.ip_addr = ip_address
 		self._camera=""
 		self._mac_address=mac_address
+		self._downloads = {}
+
 		try:
 			from getmac import get_mac_address
 			self._mac_address = get_mac_address(ip=self.ip_addr)
@@ -664,17 +669,85 @@ class GoPro:
 	##
 	## Downloading media functions
 	##
+	def _range_header(self, req):
+		need = self._downloads[req.full_url]['bytes_needed']
+		have = self._downloads[req.full_url]['bytes_received']
+		if need == 0 or have >= need:
+			return
+		req.add_header('Range', 'bytes={}-'.format(have + 1))
+
 	def download_url(self, url, path, raises=True):
 		""" Download the specified URL to the specified path. If raises is True, exceptions are passed back to the caller; otherwise they are printed to stdout and swallowed. If a short read is encountered, i.e. the download is interrupted, it will be retried. """
+
+		# Handler to inject Range header if required.
+		# Initially we have no Range header
+		# The next invocation will set a range header appropriately
+		class RangeHandler(urllib.request.HTTPHandler):
+			def __init__(self, *args, **kwargs):
+				self._range_callback = kwargs['range_callback']
+				del(kwargs['range_callback'])
+				super().__init__(*args, **kwargs)
+
+			def http_request(self, req):
+				self._range_callback(req)
+				return req
+
+		range_handler = RangeHandler(range_callback=self._range_header)
+		
+		opener = urllib.request.build_opener(range_handler)
+		urllib.request.install_opener(opener)
+
+		self._downloads[url] = {
+			'bytes_needed': 0,
+			'bytes_received': 0
+		}
+
+		originalpath = path
+		parts = 0
+
 		try:
-			urllib.request.urlretrieve(url, path)
-		except ContentTooShortError:
-			raise
-		except Exception as error:
-			if raises:
-				raise
-			else:
-				print("ERROR: " + str(error))
+			self._downloads[url]['bytes_received'] = os.stat(originalpath).st_size
+			path = originalpath + '.{}'.format(parts)
+			parts = parts + 1
+		except FileNotFoundError as e:
+			pass
+
+		while True:
+			try:
+				# in the happy case, we request a file and get the whole thing back to where we wanted it.
+				urllib.request.urlretrieve(url, path)
+				sys.stdout.write("Success\n")
+				del(self._downloads[url])
+				break
+			except ContentTooShortError as e:
+				# in the unhappy case, we got a short read.
+				filename, headers = e.content
+
+				if parts > 0:
+					with open(originalpath, 'ab') as wfd:
+						with open(filename, 'rb') as rfd:
+							shutil.copyfileobj(rfd, wfd)
+					os.unlink(filename)
+
+				want = int(headers['content-length'])
+				if self._downloads[url]['bytes_needed'] == 0:
+					self._downloads[url]['bytes_needed'] = want
+				self._downloads[url]['bytes_received'] = os.stat(originalpath).st_size
+				# server might be fibbing
+				if self._downloads[url]['bytes_received'] >= want:
+					break
+
+				path = originalpath + '.{}'.format(parts)
+				parts = parts + 1
+			except Exception as error:
+				# some callers raise, some print :-/
+				del(self._downloads[url])
+				if raises:
+					raise
+				else:
+					print("ERROR: " + str(error))
+					return
+
 		
 	def downloadMultiShot(self, path=""):
 		"""Downloads a multi-shot sequence."""

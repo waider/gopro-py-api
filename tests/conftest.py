@@ -119,6 +119,67 @@ class GoProCameraTest(TestCase):
             camera="gpcontrol", mac_address=fakemac(ip=None)
         )
 
+    def tearDown(self):
+        self.monkeypatch.undo()
+
+
+class GoProCameraTestNoHttp(TestCase):
+    def setUp(self):
+        self.monkeypatch = MonkeyPatch()
+
+        self.monkeypatch.setattr(
+            time, "sleep",
+            lambda x: logging.debug("sleeping for {}s".format(x))
+            )
+
+        # if this optional module is available, stub it out
+        def fakemac(ip=""):
+            return "00:00:DE:AD:BE:EF"
+
+        if sys.modules.get("getmac"):
+            self.monkeypatch.setattr(getmac, "get_mac_address", fakemac)
+
+        # this is just a sink for socket activity
+        def fake_socket(family, socktype, proto=None):
+            class FakeSocket():
+                def settimeout(self, timeout):
+                    pass
+
+                def setsockopt(self, cat, opt, val):
+                    pass
+
+                def sendto(self, msg, dest):
+                    pass
+
+                def sendall(self, data):
+                    pass
+
+                def connect(self, sa):
+                    pass
+
+                def close(self):
+                    pass
+
+                def makefile(self, mode):
+                    return io.BytesIO(('HTTP/1.0 200 OK\n' +
+                                       'Content-Length: 100\n' +
+                                       '\n' +
+                                       'fakedata').encode('utf8'))
+
+            return FakeSocket()
+
+        self.monkeypatch.setattr(socket, 'socket', fake_socket)
+
+        self.monkeypatch.setattr(GoProCamera.GoPro, 'infoCamera',
+                                 lambda self, f: 'f')
+
+        self.goprocam = GoProCamera.GoPro(
+            camera="gpcontrol", mac_address=fakemac(ip=None)
+        )
+
+    def tearDown(self):
+        self.monkeypatch.undo()
+
 
 class GoProCameraAuthTest(GoProCameraTest):
     def setUp(self):

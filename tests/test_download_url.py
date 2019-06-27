@@ -1,14 +1,11 @@
-from .conftest import GoProCameraTest
-import urllib.request
-import urllib.error
-import pytest
+from .conftest import GoProCameraTestNoHttp
+from goprocam import GoProCamera
+import os
 
 
-class DownloadUrlTest(GoProCameraTest):
+class DownloadUrlTest(GoProCameraTestNoHttp):
     def test_download_url_short_read(self):
         with self.monkeypatch.context() as m:
-            def broken_urlretrieve(url, path):
-                raise urllib.error.ContentTooShortError('short read', 'brp')
-            m.setattr(urllib.request, 'urlretrieve', broken_urlretrieve)
-            with pytest.raises(urllib.error.ContentTooShortError):
-                self.goprocam.download_url('foo', 'bar')
+            m.setattr(GoProCamera.GoPro, 'infoCamera', lambda f: 'f')
+            self.goprocam.download_url('http://10.5.5.9/shorty', 'X.mp4')
+            assert os.stat('X.mp4').st_size >= 100
