@@ -19,6 +19,8 @@ import ssl
 
 class GoPro:
 	def prepare_gpcontrol(self):
+		# if we're calling this, we're expecting a gpcontrol camera
+		self._camera = constants.Camera.Interface.GPControl
 		# WARNING recurses if it can't reach the camera, until maximum recursion depth is reached.
 		firmware = self.infoCamera(constants.Camera.Firmware)
 		if firmware == '':
